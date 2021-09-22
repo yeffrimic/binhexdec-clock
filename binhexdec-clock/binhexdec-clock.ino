@@ -7,8 +7,12 @@
 #include <Adafruit_NeoPixel.h>
 #define PIN D3
 
-const char *ssid     = "Xibalba Hackerspace";
-const char *password = "holi1234";
+WiFiUDP ntpUDP;
+
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", -6 * 3600, 60000);
+
+const char *ssid     = "holii";
+const char *password = "estalibre";
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 8, PIN,
                             NEO_MATRIX_BOTTOM     + NEO_MATRIX_RIGHT +
@@ -20,16 +24,21 @@ const uint16_t colors[] = {
   matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255)
 };
 
+void decToBin(unsigned int in, int pos) {
 
-WiFiUDP ntpUDP;
-
-// By default 'pool.ntp.org' is used with 60 seconds update interval and
-// no offset
-//NTPClient timeClient(ntpUDP);
-
-// You can specify the time server pool and the offset, (in seconds)
-// additionally you can specify the update interval (in milliseconds).
-NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", -6 * 3600, 60000);
+  boolean state = 0;
+  for (int i = 0; i <  8; i++) {
+    Serial.print(pos + i);
+    state = in & (1 << i);
+    Serial.println(state);
+    if (state) {
+      matrix.setPixelColor(pos + i, colors[1]);
+    } else {
+      matrix.setPixelColor(pos + i, colors[0]);
+    }
+  }
+  Serial.println();
+}
 
 void setup() {
   matrix.begin();
@@ -50,6 +59,7 @@ void setup() {
 
 
 int x    = matrix.width();
+int r = 0;
 int pass = 0;
 
 void loop() {
@@ -75,17 +85,45 @@ void loop() {
   Serial.print(":");
   Serial.println(secondsHex);
 
-  matrix.fillScreen(0);
-  matrix.setCursor(x, 0);
-  matrix.print(F(""));
-  matrix.print(hourHex);
-  matrix.print(":");
-  matrix.print(minuteHex);
-  matrix.print(":");
-  matrix.print(secondsHex);
+
+  switch (r) {
+    case 0:
+      matrix.fillScreen(0);
+      matrix.setCursor(x, 0);
+      matrix.print(F(""));
+      matrix.print(hours);
+      matrix.print(":");
+      matrix.print(minutes);
+      matrix.print(":");
+      matrix.print(seconds);
+      break;
+    case 1:
+      matrix.fillScreen(0);
+      matrix.setCursor(x, 0);
+      matrix.print(F(""));
+      matrix.print(hourHex);
+      matrix.print(":");
+      matrix.print(minuteHex);
+      matrix.print(":");
+      matrix.print(secondsHex);
+      break;
+    case 2:
+
+      decToBin(hours, 128);
+      decToBin(minutes, 144);
+      decToBin(seconds, 160);
+      break;
+
+  }
+
+
   if (--x < -46) {
     x = matrix.width();
-    if (++pass >= 3) pass = 0;
+    if (++pass >= 3) {
+      pass = 0;
+      //r++;
+      //if (r > 2) r = 0;
+    }
     matrix.setTextColor(colors[pass]);
   }
   matrix.show();
